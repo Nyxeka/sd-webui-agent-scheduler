@@ -14,6 +14,7 @@ type HistoryTasksActions = {
   bookmarkTask: (id: string, bookmarked: boolean) => Promise<ResponseStatus>;
   renameTask: (id: string, name: string) => Promise<ResponseStatus>;
   requeueTask: (id: string) => Promise<ResponseStatus>;
+  requeueAndPin: (id: string) => Promise<ResponseStatus>;
   requeueFailedTasks: () => Promise<ResponseStatus>;
   clearHistory: () => Promise<ResponseStatus>;
 };
@@ -55,6 +56,11 @@ export const createHistoryTasksStore = (initialState: HistoryTasksState) => {
       return fetch(`/agent-scheduler/v1/task/${id}/requeue`, { method: 'POST' }).then(response =>
         response.json()
       );
+    },
+    requeueAndPin: async (id: string) => {
+      return fetch(`/agent-scheduler/v1/task/${id}/do-pin-and-requeue`, {
+        method: 'POST',
+      }).then(response => response.json());
     },
     requeueFailedTasks: async () => {
       return fetch('/agent-scheduler/v1/task/requeue-failed', { method: 'POST' }).then(response => {

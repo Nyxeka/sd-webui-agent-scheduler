@@ -45,6 +45,10 @@ def init():
         if not any(col["name"] == "bookmarked" for col in task_columns):
             conn.execute(text("ALTER TABLE task ADD COLUMN bookmarked BOOLEAN DEFAULT FALSE"))
 
+        # add pinned column
+        if not any(col["name"] == "pinned" for col in task_columns):
+            conn.execute(text("ALTER TABLE task ADD COLUMN pinned BOOLEAN DEFAULT FALSE"))
+
         params_column = next(col for col in task_columns if col["name"] == "params")
         if version > "1" and not isinstance(params_column["type"], Text):
             transaction = conn.begin()

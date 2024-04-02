@@ -15,6 +15,8 @@ import { Notyf } from 'notyf';
 
 import bookmark from '../assets/icons/bookmark.svg?raw';
 import bookmarked from '../assets/icons/bookmark-filled.svg?raw';
+import pin from '../assets/icons/pin.svg?raw';
+import pinned from '../assets/icons/pinned-filled.svg?raw';
 import cancelIcon from '../assets/icons/cancel.svg?raw';
 import deleteIcon from '../assets/icons/delete.svg?raw';
 import playIcon from '../assets/icons/play.svg?raw';
@@ -735,7 +737,7 @@ function initPendingTab() {
     editType: 'fullRow',
     defaultColDef: {
       ...sharedGridOptions.defaultColDef,
-      editable: ({ data }) => data?.status === 'pending',
+      editable: ({ data }) => data?.pinned === true || data?.status === 'pending',
       cellDataType: false,
     },
     // each entry here represents one column
@@ -744,6 +746,43 @@ function initPendingTab() {
         field: 'priority',
         hide: true,
         sort: 'asc',
+      },
+      {
+        headerName: 'Pin',
+        field: 'pinned',
+        minWidth: 55,
+        maxWidth: 55,
+        pinned: 'left',
+        tooltipValueGetter: ({ value }: ITooltipParams<Task, boolean | undefined, any>) =>
+          value === true ? 'Unpin' : 'Pin',
+        cellClass: ({ value }: CellClassParams<Task, boolean | undefined>) => [
+          'cursor-pointer',
+          'pt-3',
+          value === true ? 'ts-pinned' : 'ts-pin',
+        ],
+        cellRenderer: ({ value }: ICellRendererParams<Task, boolean | undefined>) =>
+          value === true ? pinned : pin,
+        onCellClicked: ({
+          api,
+          data,
+          value,
+          event,
+        }: CellClickedEvent<Task, boolean | undefined>) => {
+          if (data == null) return;
+  
+          if (event != null) {
+            event.stopPropagation();
+            event.preventDefault();
+          }
+  
+          const pinned = value === true;
+          store.pinTask(data.id, !pinned).then(res => {
+            notify(res);
+            api.applyTransaction({
+              update: [{ ...data, pinned: !pinned }],
+            });
+          });
+        },
       },
       ...sharedGridOptions.columnDefs!,
       {
@@ -1068,9 +1107,12 @@ function initHistoryTab() {
 
           const node = document.createElement('div');
           node.innerHTML = `
-          <div class="inline-flex mt-1" role="group">
+          <div class="flex mt-1" role="group" style="flex-direction: column;">
             <button type="button" title="Requeue" class="ts-btn-action primary ts-btn-run">
               ${rotateIcon}
+            </button>
+            <button type="button" title="Requeue and pin item" class="ts-btn-action secondary ts-btn-run-and-pin">
+              ${pin}
             </button>
             <button type="button" title="Delete" class="ts-btn-action stop ts-btn-delete">
               ${deleteIcon}
@@ -1083,6 +1125,12 @@ function initHistoryTab() {
             e.preventDefault();
             e.stopPropagation();
             store.requeueTask(value).then(notify);
+          });
+          const btnRunAndPin = node.querySelector<HTMLButtonElement>('button.ts-btn-run-and-pin')!;
+          btnRunAndPin.addEventListener('click', e => {
+            e.preventDefault();
+            e.stopPropagation();
+            store.requeueAndPin(value).then(notify);
           });
           const btnDelete = node.querySelector<HTMLButtonElement>('button.ts-btn-delete')!;
           btnDelete.addEventListener('click', e => {

@@ -20,6 +20,7 @@ type PendingTasksActions = {
   moveTask: (id: string, overId: string) => Promise<ResponseStatus>;
   updateTask: (id: string, task: Task) => Promise<ResponseStatus>;
   deleteTask: (id: string) => Promise<ResponseStatus>;
+  pinTask: (id: string, pinned: boolean) => Promise<ResponseStatus>;
 };
 
 export type PendingTasksStore = ReturnType<typeof createPendingTasksStore>;
@@ -81,6 +82,11 @@ export const createPendingTasksStore = (initialState: PendingTasksState) => {
           actions.refresh();
           return data;
         });
+    },
+    pinTask: async (id: string, pinned: boolean) => {
+      return fetch(`/agent-scheduler/v1/task/${id}/${pinned ? 'pin' : 'unpin'}`, {
+        method: 'POST',
+      }).then(response => response.json());
     },
     runTask: async (id: string) => {
       return fetch(`/agent-scheduler/v1/task/${id}/run`, { method: 'POST' })

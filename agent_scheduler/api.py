@@ -336,6 +336,24 @@ def regsiter_apis(app: App, task_runner: TaskRunner):
 
             return {"success": True, "message": "Task is executing"}
 
+    @app.post("/agent-scheduler/v1/task/{id}/pin", dependencies=deps)
+    def pin_task(id: str):
+        task = task_manager.get_task(id)
+        if task is None:
+            return {"success": False, "message": "Task not found"}
+        task.pinned = True
+        task_manager.update_task(task)
+        return {"success": True, "message": "Task pinned successfully"}
+
+    @app.post("/agent-scheduler/v1/task/{id}/unpin", dependencies=deps)
+    def unpin_task(id: str):
+        task = task_manager.get_task(id)
+        if task is None:
+            return {"success": False, "message": "Task not found"}
+        task.pinned = False
+        task_manager.update_task(task)
+        return {"success": True, "message": "Task unpinned successfully"}
+
     @app.post("/agent-scheduler/v1/requeue/{id}", dependencies=deps, deprecated=True)
     @app.post("/agent-scheduler/v1/task/{id}/requeue", dependencies=deps)
     def requeue_task(id: str):
@@ -347,11 +365,29 @@ def regsiter_apis(app: App, task_runner: TaskRunner):
         task.result = None
         task.status = TaskStatus.PENDING
         task.bookmarked = False
+        task.pinned = False
         task.name = f"Copy of {task.name}" if task.name else None
         task_manager.add_task(task)
         task_runner.execute_pending_tasks_threading()
 
         return {"success": True, "message": "Task requeued"}
+    # /agent-scheduler/v1/task/${id}/requeue-and-pin
+    @app.post("/agent-scheduler/v1/task/{id}/do-pin-and-requeue", dependencies=deps)
+    def requeue_and_pin_task(id: str):
+        task = task_manager.get_task(id)
+        if task is None:
+            return {"success": False, "message": "Task not found"}
+
+        task.id = str(uuid4())
+        task.result = None
+        task.status = TaskStatus.PENDING
+        task.bookmarked = False
+        task.pinned = True
+        task.name = f"Copy of {task.name}" if task.name else None
+        task_manager.add_task(task)
+        task_runner.execute_pending_tasks_threading()
+
+        return {"success": True, "message": "Task requeued and pinned"}
 
     @app.post("/agent-scheduler/v1/task/requeue-failed", dependencies=deps)
     def requeue_failed_tasks():

@@ -38,6 +38,7 @@ class TaskModel(BaseModel):
     position: Optional[int] = Field(title="Task Position")
     result: Optional[str] = Field(title="Task Result", description="The result of the task in JSON format")
     bookmarked: Optional[bool] = Field(title="Is task bookmarked")
+    pinned: Optional[bool] = Field(title="Is task pinned")
     created_at: Optional[datetime] = Field(
         title="Task Created At",
         description="The time when the task was created",

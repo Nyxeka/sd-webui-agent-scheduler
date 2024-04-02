@@ -72,6 +72,7 @@ class Task(TaskModel):
             status=table.status,
             result=table.result,
             bookmarked=table.bookmarked,
+            pinned=table.pinned,
             created_at=table.created_at,
             updated_at=table.updated_at,
         )
@@ -89,6 +90,7 @@ class Task(TaskModel):
             status=self.status,
             result=self.result,
             bookmarked=self.bookmarked,
+            pinned=self.pinned,
         )
 
     def from_json(json_obj: Dict):
@@ -104,6 +106,7 @@ class Task(TaskModel):
             priority=json_obj.get("priority", int(datetime.now(timezone.utc).timestamp() * 1000)),
             result=json_obj.get("result", None),
             bookmarked=json_obj.get("bookmarked", False),
+            pinned=json_obj.get("pinned", False),
             created_at=datetime.fromtimestamp(json_obj.get("created_at", datetime.now(timezone.utc).timestamp())),
             updated_at=datetime.fromtimestamp(json_obj.get("updated_at", datetime.now(timezone.utc).timestamp())),
         )
@@ -121,6 +124,7 @@ class Task(TaskModel):
             "priority": self.priority,
             "result": self.result,
             "bookmarked": self.bookmarked,
+            "pinned": self.pinned,
             "created_at": int(self.created_at.timestamp()),
             "updated_at": int(self.updated_at.timestamp()),
         }
@@ -140,6 +144,7 @@ class TaskTable(Base):
     status = Column(String(20), nullable=False, default="pending")  # pending, running, done, failed
     result = Column(Text)  # task result
     bookmarked = Column(Boolean, nullable=True, default=False)
+    pinned = Column(Boolean, nullable=True, default=False)
     created_at = Column(
         DateTime,
         nullable=False,
@@ -197,6 +202,7 @@ class TaskManager(BaseTableManager):
         limit: int = None,
         offset: int = None,
         order: str = "asc",
+        pinned: bool = None,
     ) -> List[TaskTable]:
         session = Session(self.engine)
         try:
@@ -212,6 +218,10 @@ class TaskManager(BaseTableManager):
 
             if api_task_id:
                 query = query.filter(TaskTable.api_task_id == api_task_id)
+
+            
+            if pinned is not None:
+                query = query.filter(TaskTable.pinned == pinned)
 
             if bookmarked == True:
                 query = query.filter(TaskTable.bookmarked == bookmarked)

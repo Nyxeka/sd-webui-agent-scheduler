@@ -377,6 +377,7 @@ class TaskRunner:
                     if is_interrupted:
                         log.info(f"\n[AgentScheduler] Task {task.id} interrupted")
                         task.status = TaskStatus.INTERRUPTED
+                        task.pinned = False
                         task_manager.update_task(task)
                         self.__run_callbacks(
                             "task_finished",
@@ -390,10 +391,23 @@ class TaskRunner:
                             "images": self.__saved_images_path.copy(),
                             "geninfo": geninfo,
                         }
-
-                        task.status = TaskStatus.DONE
+                        
+                        try:
+                            # necessary to update in case it changed while pending
+                            task.pinned = task_manager.get_task(task.id).pinned
+                        except Exception as e:
+                            task.pinned = False
+                            log.error(f"[AgentScheduler] Error updating task {task.id} pinned status: {e}")
+                        
                         task.result = json.dumps(result)
+
+                        if task.pinned:
+                            task.priority = int(datetime.now(timezone.utc).timestamp() * 1000)
+                        cbstatus = TaskStatus.DONE if not task.pinned else TaskStatus.PENDING
+                        task.status = cbstatus
+
                         task_manager.update_task(task)
+
                         self.__run_callbacks(
                             "task_finished",
                             task_id,
@@ -520,8 +534,17 @@ class TaskRunner:
 
         # get more task if needed
         if self.__total_pending_tasks > 0:
+
+            # to-do: implement task priority button or something?
+
+            # first search non-pinned:
             log.info(f"[AgentScheduler] Total pending tasks: {self.__total_pending_tasks}")
-            pending_tasks = task_manager.get_tasks(status="pending", limit=1)
+            pending_tasks = task_manager.get_tasks(status="pending", limit=1, pinned=False)
+            if len(pending_tasks) > 0:
+                return pending_tasks[0]
+            
+            # finally, look for pinned:
+            pending_tasks = task_manager.get_tasks(status="pending", limit=1, pinned=True)
             if len(pending_tasks) > 0:
                 return pending_tasks[0]
         else:

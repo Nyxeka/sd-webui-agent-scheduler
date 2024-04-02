@@ -218,6 +218,14 @@ button.ts-btn-action {
   color: var(--color-accent) !important;
 }
 
+.ts-pin {
+  color: var(--button-primary-background-fill) !important;
+}
+
+.ts-pinned {
+  color: var(--button-primary-background-fill) !important;
+}
+
 #agent_scheduler_pending_tasks_grid,
 #agent_scheduler_history_tasks_grid {
   height: calc(100vh - 300px);
